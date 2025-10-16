@@ -6,6 +6,8 @@
 dti_env
 runs
 
+venv/
+
 agent
 .env
 __pycache__
