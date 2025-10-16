@@ -140,8 +140,44 @@ def main(args):
             elif args.prefix_string is not None:
                 curr_bsz = sample['net_input']['src_tokens'].size(0)
                 prefix_tokens = torch.repeat_interleave(decoding_prefix_tensor.unsqueeze(0), curr_bsz, dim=0)
+            # New: use structural features (preprocessed as strings per-example) as a decoding prefix
+            elif getattr(args, 'use_structural_as_prefix', False):
+                # Expect dataset to populate sample['struct_features_str'] as a list/tensor of strings
+                if 'struct_features_str' not in sample:
+                    raise ValueError("use_structural_as_prefix enabled but sample['struct_features_str'] missing. Preprocess dataset to include this field.")
+                # sample['struct_features_str'] may be a list of Python strings or a tensor of byte strings,
+                # convert each entry to a token sequence via tgt_dict.encode_line
+                curr_bsz = sample['net_input']['src_tokens'].size(0)
+                per_example_prefix = []
+                for i in range(curr_bsz):
+                    val = sample['struct_features_str'][i]
+                    # If it's a bytes/tensor, decode; else assume str
+                    if isinstance(val, bytes):
+                        s = val.decode('utf-8')
+                    else:
+                        try:
+                            s = str(val)
+                        except Exception:
+                            s = ''
+                    # encode into token ids using target dictionary; add no_newline and don't add EOS
+                    toks = tgt_dict.encode_line(s, add_if_not_exist=False).long().cpu()
+                    per_example_prefix.append(toks)
+                # pad prefixes to same length and stack
+                max_len = max([t.numel() for t in per_example_prefix]) if per_example_prefix else 0
+                if max_len == 0:
+                    prefix_tokens = None
+                else:
+                    pad_id = tgt_dict.pad()
+                    stacked = torch.full((curr_bsz, max_len), pad_id, dtype=torch.long)
+                    for i, t in enumerate(per_example_prefix):
+                        stacked[i, :t.numel()] = t
+                    prefix_tokens = stacked
+            
+            # move prefix_tokens to GPU if needed        
             if use_cuda and prefix_tokens is not None:
                 prefix_tokens = utils.move_to_cuda(prefix_tokens)
+            
+            # Generate hypotheses
             gen_timer.start()
             hypos = task.inference_step(generator, models, sample, prefix_tokens)
             num_generated_tokens = sum(len(h[0]['tokens']) for h in hypos)

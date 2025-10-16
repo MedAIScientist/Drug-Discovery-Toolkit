@@ -5,13 +5,9 @@ address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = false
 
-[global]
-environment = "production"
-
-[theme] 
+[theme]
 base="dark"
 primaryColor="#1d1d1d"
-secondaryColor="#323232"
 backgroundColor="#1d1d1d"
-SecondaryBackgroundColor="#323232"
+secondaryBackgroundColor="#323232"
 textColor="#B9B9B9"
