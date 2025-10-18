@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-10-18T17:51:43.219164",
+  "statistics": {
+    "drugs": 8195,
+    "drug_drug": 48513,
+    "genes": 11396401,
+    "drug_gene": 15139,
+    "diseases": 3048910,
+    "drug_disease": 466657,
+    "disease_gene": 15509619,
+    "functions": 3,
+    "gene_function": 16628
+  },
+  "data_source": "BioSNAP and DAVIS datasets",
+  "database": "ArangoDB (NeuThera)"
+}
